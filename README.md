@@ -6,7 +6,7 @@ Custom Linux systemd core_pattern and coredump utility
 Copy custom-coredump-01.tar.gz to the K8S master node
 and do the following
 
-#tar -zcvf custom-coredump-01.tar.gz
+#tar -zxvf custom-coredump-01.tar.gz
 
 #cd scripts
 
