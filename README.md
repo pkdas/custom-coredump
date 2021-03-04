@@ -7,13 +7,15 @@ Copy custom-coredump-01.tar.gz to the K8S master node
 and do the following
 
 #tar -zcvf custom-coredump-01.tar.gz
+
 #cd scripts
+
 #./nodes
 
 # Optional
 To mount systemd coredump folder as /tmp/coredump, run the following
 #./ippecoredump
 
-# To Restore systemd coredump
+# To restore systemd coredump
 #./snodes 
 
