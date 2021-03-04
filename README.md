@@ -14,4 +14,6 @@ and do the following
 To mount systemd coredump folder as /tmp/coredump, run the following
 #./ippecoredump
 
- 
+# To Restore systemd coredump
+#./snodes 
+
