@@ -9,7 +9,7 @@ do
   echo "updating coredump.conf to worker node $nodeip"
   scp -o StrictHostKeyChecking=False coredump.conf root@${nodeip}:/etc/systemd/coredump.conf
   echo "applying coredump.conf in worker node $nodeip"
-  ssh -n -o StrictHostKeyChecking=False root@${nodeip} "echo \"|/usr/lib/systemd/systemd-coredump %P %u %g %s %t %c %h %e\" > /proc/sys/kernel/core_pattern; systemctl daemon-reload; cat /proc/sys/kernel/core_pattern; cat /etc/systemd/coredump.conf"
+  ssh -n -o StrictHostKeyChecking=False root@${nodeip} "echo \"|/usr/lib/systemd/systemd-coredump %P %u %g %s %t %c %h %e\" > /proc/sys/kernel/core_pattern; systemctl daemon-reexec; cat /proc/sys/kernel/core_pattern; cat /etc/systemd/coredump.conf"
 done < "$fname"
 
 rm -f ${fname}
