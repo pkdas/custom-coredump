@@ -1,0 +1,3 @@
+#!/bin/sh
+/usr/bin/logger "core.dumper: sleeping 60 seconds"
+sleep 60

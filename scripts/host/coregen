@@ -1,0 +1,81 @@
+#!/bin/bash
+
+# defult core_pattern
+# |/usr/lib/systemd/systemd-coredump %P %u %g %s %t %c %h %e
+#
+# use the same arglist for coregen with %p appended
+# |/usr/local/sbin/coregen  %P %u %g %s %t %c %h %e %p
+#
+#   %P  PID of dumped process, as seen in the initial PID namespace
+#       this is the PID on the host
+#   %u  (numeric) real UID of dumped process
+#   %g  (numeric) real GID of dumped process
+#   %s  number of signal causing dump
+#   %t  time of dump, expressed as seconds since the Epoch,
+#       1970-01-01 00:00:00 +0000 (UTC)
+#   %c  core file size soft resource limit of crashing process (since Linux 2.6.24)
+#   %h  hostname (same as nodename returned by uname(2))
+#   %e  executable filename (without path prefix)
+#   %p  PID of dumped process, as seen in the PID namespace in which
+#       the process resides. PID in the container namespace
+
+if [ "$#" -ne 9 ]; then
+    /usr/bin/logger "coregen : invalid number of parameters $#" 
+    exit 1
+fi
+
+pid=$1
+uid=$2
+gid=$3
+sig=$4
+ts=$5
+limit=$6
+host=$7
+pname=$8
+cpid=$9
+
+# cleanup exited docker images
+/usr/local/sbin/docker-cleanup
+
+dumpdir=/var/lib/systemd/coredump
+diskusage=`df -h --output=pcent,avail ${dumpdir}`
+#echo $diskusage
+#Use% Avail 36% 6.8G
+
+usedpercent=`echo ${diskusage} | awk '{split($0,a," "); print a[3]}' | cut -d'%' -f1`
+availgig=`echo ${diskusage} | awk '{split($0,a," "); print a[4]}' | cut -d'G' -f1 | cut -d'.' -f1`
+
+# make maxpercent a config param
+maxpercent=85
+if (( $usedpercent > ${maxpercent} )); then 
+    /usr/bin/logger "coregen : disk max usage exceeds, exiting coredump of core.$pname.$sig.$uid.$gid.$pid.$ts.$cpid" 
+    exit 1
+fi
+
+# make mingig a config param
+#for vpp or tdef-proxy DPDK processes check if 40GB is available if not exit 1
+mingig=40
+if [[ ${pname} == *"vpp"* || ${pname} == *"tdef-proxy"* ]]; then
+    if (( ${availgig} < ${mingig} )); then 
+        /usr/bin/logger "coregen : not enough disk space for DPDK processes, exiting coredump of core.$pname.$sig.$uid.$gid.$pid.$ts.$cpid" 
+        exit 1
+    fi
+
+    core_files=`ls -1rt $dumpdir | grep ${pname}`
+    num_core_files=`ls -1rt $dumpdir | grep -c ${pname}`
+
+    #keep max 2 of each process - the first and the last
+    if [ $num_core_files -ge 2 ] ; then
+        # Already have 2 cores, remove the newest
+        arr=($core_files)
+        rm -f $dumpdir/${arr[1]}
+    fi
+
+    corefile=$dumpdir/core.$pname.$sig.$uid.$gid.$pid.$ts.$cpid
+    cat - | /usr/bin/gzip -c > $corefile.gz
+
+    /usr/bin/logger "coregen : coredump complete $corefile" 
+else
+    #cat - | /usr/lib/systemd/systemd-coredump %P %u %g %s %t %c %h %e
+    cat - | /usr/lib/systemd/systemd-coredump $1 $2 $3 $4 $5 $6 $7 $8 
+fi

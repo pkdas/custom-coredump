@@ -1,0 +1,15 @@
+#!/bin/bash
+
+fname=/tmp/nodes
+kubectl get nodes -o wide  | sed -n '3,$p' > ${fname}
+
+while IFS= read -r line
+do
+  nodeip=`echo "$line" | tr -s ' ' | cut -d' ' -f6`
+  echo "copying coregen to worker node $nodeip"
+  scp -o StrictHostKeyChecking=False host/* root@${nodeip}:/usr/local/sbin
+  echo "setting core_pattern in worker node $nodeip"
+  ssh -n -o StrictHostKeyChecking=False root@${nodeip} "cat /proc/sys/kernel/core_pattern; /usr/local/sbin/startup-exec; cat /proc/sys/kernel/core_pattern; cat /usr/local/sbin/coregen"
+done < "$fname"
+
+rm -f ${fname}

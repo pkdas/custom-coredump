@@ -1,0 +1,14 @@
+#!/bin/bash
+
+images=`docker ps -a -q -f status=exited`
+
+if [ "$images" ]; then
+  #echo "exited "$images
+  docker rm -v $images
+fi
+
+images=`docker images -f "dangling=true" -q`
+if [ "$images" ]; then
+  #echo "dangling "$images
+  docker rmi $images
+fi

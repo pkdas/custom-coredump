@@ -1,0 +1,53 @@
+#!/bin/bash
+
+#arg0 - max wait
+#arg1 - command to run
+#arg2 - pattern to match
+
+waituntil()
+{
+  maxwaitsecs=$1
+  cmd=$2
+  matchstr=$3
+
+  seccount=0
+  while [ $seccount -le $maxwaitsecs ]
+  do
+    echo -n '.'
+    sleep 1
+    output=`eval $cmd`
+    if [ -z "$output" ] && [ -z "$matchstr" ]; then
+      #echo "found empty " $matchstr
+      break
+    fi
+    if [ "$output" = "$matchstr" ]; then
+      #echo "found "$matchstr
+      break
+    fi
+    seccount=$((seccount+1))
+  done
+}
+
+pped=`kubectl get deployment -n fed-upf | grep ppe| cut -d ' ' -f 1`
+echo "shutdown the pods of the current "$pped" deployment"
+kubectl patch deployment ${pped} -n fed-upf  -p '{"spec":{"replicas":0}}'
+ppecmd="kubectl get pods -n fed-upf  | grep ppe | cut -d ' ' -f 1"
+waituntil 20 "${ppecmd}" 
+
+fname=/tmp/ippe_deploy.yaml
+
+kubectl get deploy ${pped} -n fed-upf -o yaml > ${fname}
+if [ -z "$(grep "host-volume-systemd-coredump" ${fname})" ]; then 
+    sed -i -E '/\ {6}volumes:.*/a \      - hostPath:\n          path: /var/lib/systemd/coredump\n          type: Directory\n        name: host-volume-systemd-coredump' ${fname}
+    sed -i -E '/\ {10}name: host-volume-ipperun.*/a \        - mountPath: /tmp/coredump\n          name: host-volume-systemd-coredump' ${fname}
+    kubectl apply -f ${fname}
+fi
+rm -f ${fname}
+
+echo "starting "$pped" deployment with one replica"
+kubectl patch deployment ${pped} -n fed-upf  -p '{"spec":{"replicas":1}}'
+
+ppestate="kubectl get pods -n fed-upf  | grep ppe | tr -s ' ' | cut -d ' ' -f 2"
+
+echo 'wait until 5 containers in ppe pod are in running and active 5/5'
+waituntil 20 "${ppestate}" "5/5"
