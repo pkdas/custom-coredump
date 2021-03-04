@@ -10,7 +10,7 @@ and do the following
 #cd scripts
 #./nodes
 
-# Optional:
+# Optional
 To mount systemd coredump folder as /tmp/coredump, run the following
 #./ippecoredump
 
