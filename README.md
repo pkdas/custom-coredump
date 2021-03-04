@@ -1,7 +1,7 @@
 # custom-coredump
 Custom Linux systemd core_pattern and coredump utility 
 
-To apply custom-coredump on the workernodes in your K8S cluster
+# To apply custom-coredump on the workernodes in your K8S cluster
 
 Copy custom-coredump-01.tar.gz to the K8S master node
 and do the following
@@ -10,7 +10,7 @@ and do the following
 #cd scripts
 #./nodes
 
-Optional:
+# Optional:
 To mount systemd coredump folder as /tmp/coredump, run the following
 #./ippecoredump
 
